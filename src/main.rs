@@ -1,13 +1,15 @@
 use std::f64::consts::E;
 use rand::Rng;
+use std::collections::HashMap;
 
 fn main() {
     let population_count: usize = 10;
     let crossover_constant = 87.0; //percent
     let mutation_constant = 1.0; //percent
-    let vec = generate_initial_gen(population_count);
-    for elem in &vec {
-        println!("{elem} : {}", fitness(*elem))
+    let population = generate_initial_gen(population_count);
+    let population_fitness = determine_fitness_of_gen(population);
+    for (elem, elem_fitness) in &population_fitness {
+        println!("{elem} : {elem_fitness}")
     }
 }
 
@@ -37,4 +39,12 @@ fn conv_bstring_to_int(bin: impl Into<String>) -> i64 {
 
 fn conv_int_to_bstring(int: i64) -> String {
     format!("{:016b}", int)
+}
+
+fn determine_fitness_of_gen(population: Vec<i64>) -> HashMap<i64, f64> {
+    let mut population_fitness: HashMap<i64, f64> = HashMap::new();
+    for elem in &population {
+        population_fitness.insert(*elem, fitness(*elem));
+    }
+    population_fitness
 }
