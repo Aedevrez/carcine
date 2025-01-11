@@ -8,19 +8,19 @@ use rand::thread_rng;
 fn main() {
     let population_count: usize = 10;
     let crossover_constant = 0.87; //percent
-    let mutation_constant = 0.01; //percent
+    let mutation_constant = 0.1; //percent
     let population = generate_initial_gen(population_count);
     let population_fitness = determine_fitness_of_gen(&population);
-    let generation_count = 100;
+    let generation_count = 20;
     for (elem, elem_fitness) in &population_fitness {
         println!("{:?} : {elem_fitness}", split_bstring_to_two(conv_int_to_bstring(*elem)));
     }
 
-    let mut new_generation;
+    let mut new_generation= generate_new_generation(&population, population_count, crossover_constant, mutation_constant);
 
     for i in 0..generation_count {
         println!("Generation {i}");
-        new_generation = generate_new_generation(&population, population_count, crossover_constant, mutation_constant);
+        new_generation = generate_new_generation(&new_generation, population_count, crossover_constant, mutation_constant);
     }
 
 }
@@ -32,7 +32,7 @@ fn fitness(s: i64) -> f64 {
 
     //let mut fitness_level: f64 = (((1-x)^2) as f64) * E.powi((-(x^2) - (y+1)^2) as i32) - ((x - x^3 - y^3) as f64) * E.powi((-(x^2) -(y^2)) as i32);
 
-    let mut fitness_level: f64 = (10000 - x^2 + y^2) as f64;
+    let mut fitness_level: f64 = (1000 - x - y + x * y) as f64;
 
     if fitness_level < 0.0 {fitness_level = 0.0;}
     fitness_level
