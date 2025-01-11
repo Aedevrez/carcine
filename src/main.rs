@@ -7,9 +7,12 @@ fn main() {
     let crossover_constant = 87.0; //percent
     let mutation_constant = 1.0; //percent
     let population = generate_initial_gen(population_count);
-    let population_fitness = determine_fitness_of_gen(population);
+    let population_fitness = determine_fitness_of_gen(&population);
     for (elem, elem_fitness) in &population_fitness {
         println!("{elem} : {elem_fitness}")
+    }
+    for elem in &population {
+        println!("{elem}")
     }
 }
 
@@ -41,9 +44,9 @@ fn conv_int_to_bstring(int: i64) -> String {
     format!("{:016b}", int)
 }
 
-fn determine_fitness_of_gen(population: Vec<i64>) -> HashMap<i64, f64> {
+fn determine_fitness_of_gen(population: &Vec<i64>) -> HashMap<i64, f64> {
     let mut population_fitness: HashMap<i64, f64> = HashMap::new();
-    for elem in &population {
+    for elem in population {
         population_fitness.insert(*elem, fitness(*elem));
     }
     population_fitness
