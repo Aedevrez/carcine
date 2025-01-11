@@ -7,16 +7,22 @@ use rand::thread_rng;
 
 fn main() {
     let population_count: usize = 10;
-    let crossover_constant = 87.0; //percent
-    let mutation_constant = 1.0; //percent
+    let crossover_constant = 0.87; //percent
+    let mutation_constant = 0.01; //percent
     let population = generate_initial_gen(population_count);
     let population_fitness = determine_fitness_of_gen(&population);
     for (elem, elem_fitness) in &population_fitness {
         println!("{elem} : {elem_fitness}")
     }
+
+    let mut new_generation = Vec::with_capacity(population_count);
     for _ in 0..5 {
         let (first, second) = pick_candidates_for_breeding(&population_fitness);
-        println!("{first} {second}");
+        
+        let (first_child, second_child) = breed(first, second, crossover_constant, mutation_constant);
+        new_generation.push(first_child);
+        new_generation.push(second_child);
+        println!("{first} {second} => {first_child} {second_child}");
     }
 }
 
@@ -77,4 +83,35 @@ fn pick_candidates_for_breeding(population: &HashMap<i64, f64>) -> (i64, i64) {
     second = keys[dist.sample(&mut rng)];
     
     (first, second)
+}
+
+fn breed(first: i64, second: i64, crossover_constant: f64, mutation_constant: f64) -> (i64, i64) {
+    let mut rng = rand::thread_rng();
+
+    let binary_first = conv_int_to_bstring(first);
+    let binary_second = conv_int_to_bstring(second);
+    let mut binary_couple = format!("{binary_first}{binary_second}");
+    let mut first_child = first;
+    let mut second_child= second;
+
+    if rng.gen_range(0.0..1.0) < mutation_constant {
+        let pivot = rng.gen_range(0..15);
+        let mutated_char = match &binary_couple.chars().nth(pivot).unwrap() {
+            '0' => "1",
+            '1' => "0",
+            _ => panic!("Unexpected character during mutation")
+        };
+        binary_couple.replace_range(pivot..pivot+1, mutated_char);
+    }
+
+    if rng.gen_range(0.0..1.0) < crossover_constant {
+        let pivot = rng.gen_range(0..16);
+        let part_one = &binary_couple[0..pivot];
+        let part_two = &binary_couple[pivot..16];
+        first_child = conv_bstring_to_int(format!("{part_one}{part_two}"));
+        second_child = conv_bstring_to_int(format!("{part_two}{part_one}"));
+    }
+
+    
+    (first_child, second_child)
 }
