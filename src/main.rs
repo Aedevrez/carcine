@@ -1,6 +1,9 @@
 use std::f64::consts::E;
 use rand::Rng;
 use std::collections::HashMap;
+use rand::distributions::WeightedIndex;
+use rand::prelude::*;
+use rand::thread_rng;
 
 fn main() {
     let population_count: usize = 10;
@@ -11,8 +14,9 @@ fn main() {
     for (elem, elem_fitness) in &population_fitness {
         println!("{elem} : {elem_fitness}")
     }
-    for elem in &population {
-        println!("{elem}")
+    for _ in 0..5 {
+        let (first, second) = pick_candidates_for_breeding(&population_fitness);
+        println!("{first} {second}");
     }
 }
 
@@ -21,7 +25,9 @@ fn fitness(s: i64) -> f64 {
     let x: i64 = conv_bstring_to_int(&s[0..8]);
     let y: i64 = conv_bstring_to_int(&s[8..16]);
 
-    let fitness_level: f64 = (((1-x)^2) as f64) * E.powi((-(x^2) - (y+1)^2) as i32) - ((x - x^3 - y^3) as f64) * E.powi((-(x^2) -(y^2)) as i32);
+    let mut fitness_level: f64 = (((1-x)^2) as f64) * E.powi((-(x^2) - (y+1)^2) as i32) - ((x - x^3 - y^3) as f64) * E.powi((-(x^2) -(y^2)) as i32);
+
+    if fitness_level < 0.0 {fitness_level = 0.0;}
     fitness_level
 }
 
@@ -50,4 +56,25 @@ fn determine_fitness_of_gen(population: &Vec<i64>) -> HashMap<i64, f64> {
         population_fitness.insert(*elem, fitness(*elem));
     }
     population_fitness
+}
+
+fn pick_candidates_for_breeding(population: &HashMap<i64, f64>) -> (i64, i64) {
+    let mut rng = thread_rng();
+    
+    let keys: Vec<i64> = population.keys().cloned().collect();
+    let weights: Vec<f64> = population.values().cloned().collect();
+    
+    let dist = WeightedIndex::new(&weights).unwrap();
+    
+    let first = keys[dist.sample(&mut rng)];
+    let mut second;
+    /*loop {
+        second = keys[dist.sample(&mut rng)];
+        if second != first {
+            break;
+        }
+    }*/
+    second = keys[dist.sample(&mut rng)];
+    
+    (first, second)
 }
