@@ -1,19 +1,48 @@
+#[allow(unused_imports)]
 use std::f64::consts::E;
-use rand::Rng;
+#[allow(unused_imports)]
 use std::collections::HashMap;
+use rand::Rng;
 use rand::distributions::WeightedIndex;
 use rand::prelude::*;
 use rand::thread_rng;
+
+struct Candidate {
+    value: i64,
+    fitness_level: f64,
+}
+
+impl Candidate {
+    pub fn new(value: i64) -> Candidate {
+        Candidate {
+            value,
+            fitness_level: Candidate::fitness(value),
+        }
+    }
+
+    pub fn fitness(s: i64) -> f64 {
+        let s = conv_int_to_bstring(s);
+        let x: i64 = conv_bstring_to_int(&s[0..8]);
+        let y: i64 = conv_bstring_to_int(&s[8..16]);
+    
+        //let mut fitness_level: f64 = (((1-x)^2) as f64) * E.powi((-(x^2) - (y+1)^2) as i32) - ((x - x^3 - y^3) as f64) * E.powi((-(x^2) -(y^2)) as i32);
+    
+        let mut fitness_level: f64 = (1000 - x - y + x * y) as f64;
+    
+        if fitness_level < 0.0 {fitness_level = 0.0;}
+        fitness_level
+    }
+}
 
 fn main() {
     let population_count: usize = 10;
     let crossover_constant = 0.87; //percent
     let mutation_constant = 0.1; //percent
     let population = generate_initial_gen(population_count);
-    let population_fitness = determine_fitness_of_gen(&population);
+    //let population_fitness = determine_fitness_of_gen(&population);
     let generation_count = 20;
-    for (elem, elem_fitness) in &population_fitness {
-        println!("{:?} : {elem_fitness}", split_bstring_to_two(conv_int_to_bstring(*elem)));
+    for candidate in &population {
+        println!("{:?} : {}", split_bstring_to_two(conv_int_to_bstring(candidate.value)), candidate.fitness_level);
     }
 
     let mut new_generation= generate_new_generation(&population, population_count, crossover_constant, mutation_constant);
@@ -25,26 +54,15 @@ fn main() {
 
 }
 
-fn fitness(s: i64) -> f64 {
-    let s = conv_int_to_bstring(s);
-    let x: i64 = conv_bstring_to_int(&s[0..8]);
-    let y: i64 = conv_bstring_to_int(&s[8..16]);
 
-    //let mut fitness_level: f64 = (((1-x)^2) as f64) * E.powi((-(x^2) - (y+1)^2) as i32) - ((x - x^3 - y^3) as f64) * E.powi((-(x^2) -(y^2)) as i32);
 
-    let mut fitness_level: f64 = (1000 - x - y + x * y) as f64;
-
-    if fitness_level < 0.0 {fitness_level = 0.0;}
-    fitness_level
-}
-
-fn generate_initial_gen(population_count: usize) -> Vec<i64> {
+fn generate_initial_gen(population_count: usize) -> Vec<Candidate> {
     let mut rng = rand::thread_rng();
     
     let mut vec = Vec::with_capacity(population_count as usize);
     for _ in 0..population_count {
         let random = rng.gen_range(0..131072);
-        vec.push(random);
+        vec.push(Candidate::new(random));
     }
     vec
 }
@@ -57,23 +75,25 @@ fn conv_int_to_bstring(int: i64) -> String {
     format!("{:016b}", int)
 }
 
-fn determine_fitness_of_gen(population: &Vec<i64>) -> HashMap<i64, f64> {
+/*fn determine_fitness_of_gen(population: &Vec<i64>) -> HashMap<i64, f64> {
     let mut population_fitness: HashMap<i64, f64> = HashMap::new();
     for elem in population {
         population_fitness.insert(*elem, fitness(*elem));
     }
     population_fitness
-}
+}*/
 
-fn pick_candidates_for_breeding(population: &HashMap<i64, f64>) -> (i64, i64) {
+fn pick_candidates_for_breeding(population: &Vec<Candidate>) -> (Candidate, Candidate) {
     let mut rng = thread_rng();
     
-    let keys: Vec<i64> = population.keys().cloned().collect();
-    let weights: Vec<f64> = population.values().cloned().collect();
+    let keys: Vec<i64> = (&population).into_iter().map(|c| c.value).collect();
+    let weights: Vec<f64> = (&population).into_iter().map(|c| c.fitness_level).collect();
     
     let dist = WeightedIndex::new(&weights).unwrap();
     
-    let first = keys[dist.sample(&mut rng)];
+    let first = Candidate::new(keys[dist.sample(&mut rng)]);
+
+    #[allow(unused_mut)]
     let mut second;
     /*loop {
         second = keys[dist.sample(&mut rng)];
@@ -81,16 +101,16 @@ fn pick_candidates_for_breeding(population: &HashMap<i64, f64>) -> (i64, i64) {
             break;
         }
     }*/
-    second = keys[dist.sample(&mut rng)];
+    second = Candidate::new(keys[dist.sample(&mut rng)]);
     
     (first, second)
 }
 
-fn breed(first: i64, second: i64, crossover_constant: f64, mutation_constant: f64) -> (i64, i64) {
+fn breed(first: Candidate, second: Candidate, crossover_constant: f64, mutation_constant: f64) -> (Candidate, Candidate) {
     let mut rng = rand::thread_rng();
 
-    let binary_first = conv_int_to_bstring(first);
-    let binary_second = conv_int_to_bstring(second);
+    let binary_first = conv_int_to_bstring(first.value);
+    let binary_second = conv_int_to_bstring(second.value);
     let mut binary_couple = format!("{binary_first}{binary_second}");
     let mut first_child = first;
     let mut second_child= second;
@@ -109,21 +129,21 @@ fn breed(first: i64, second: i64, crossover_constant: f64, mutation_constant: f6
         let pivot = rng.gen_range(0..32);
         let part_one = &binary_couple[0..pivot];
         let part_two = &binary_couple[pivot..32];
-        first_child = conv_bstring_to_int(format!("{part_one}{part_two}"));
-        second_child = conv_bstring_to_int(format!("{part_two}{part_one}"));
+        first_child = Candidate::new(conv_bstring_to_int(format!("{part_one}{part_two}")));
+        second_child = Candidate::new(conv_bstring_to_int(format!("{part_two}{part_one}")));
     }
 
-    println!("{:?} , {:?} => {:?} {:?}", split_bstring_to_two(binary_first), split_bstring_to_two(binary_second), split_bstring_to_two(conv_int_to_bstring(first_child)), split_bstring_to_two(conv_int_to_bstring(second_child)));
+    println!("{:?} , {:?} => {:?} {:?}", split_bstring_to_two(binary_first), split_bstring_to_two(binary_second), split_bstring_to_two(conv_int_to_bstring(first_child.value)), split_bstring_to_two(conv_int_to_bstring(second_child.value)));
     
     (first_child, second_child)
 }
 
-fn generate_new_generation(population: &Vec<i64>, population_count: usize, crossover_constant: f64, mutation_constant: f64) -> Vec<i64> {
-    let old_population_with_fitness = determine_fitness_of_gen(population);
+fn generate_new_generation(population: &Vec<Candidate>, population_count: usize, crossover_constant: f64, mutation_constant: f64) -> Vec<Candidate> {
+    //let old_population_with_fitness = determine_fitness_of_gen(population);
     let mut new_generation = Vec::new();
 
     for _ in 0..population_count/2 {
-        let (first, second) = pick_candidates_for_breeding(&old_population_with_fitness);
+        let (first, second) = pick_candidates_for_breeding(&population);
         
         let (first_child, second_child) = breed(first, second, crossover_constant, mutation_constant);
 
